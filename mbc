@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+"""Macbook Pro 11.x brightness control
+
+Usage:
+    mbc start
+    mbc screen (increase|decrease)
+    mbc keyboard (increase|decrease)
+
+"""
+
+import socket
+import sys
+import os
+import shutil
+from docopt import docopt
+
+brightness_sock = '/tmp/brightness_socket'
+screen_gmux = '/sys/class/backlight/gmux_backlight/brightness'
+kbd_smc = '/sys/class/leds/smc::kbd_backlight/brightness'
+
+
+def decode_msg(msg):
+    msg_type, msg_cmd = msg.split(':')
+    if msg_type == 'scr':
+        screen_brightness(msg_cmd)
+    if msg_type == 'kbd':
+        kbd_brightness(msg_cmd)
+
+
+def screen_brightness(cmd):
+    current_brightness = open(screen_gmux).readline().rstrip()
+    if cmd == '+':
+        if int(current_brightness) >= 1000:
+            return
+        set_brightness = int(current_brightness) + 10
+    elif cmd == '-':
+        if int(current_brightness) <= 10:
+            return
+        set_brightness = int(current_brightness) - 10
+    else:
+        return
+    with open(screen_gmux, 'w') as gmux:
+        gmux.write(str(set_brightness))
+
+
+def kbd_brightness(cmd):
+    current_brightness = open(kbd_smc).readline().rstrip()
+    if cmd == '+':
+        if int(current_brightness) >= 255:
+            return
+        set_brightness = int(current_brightness) + 5
+    elif cmd == '-':
+        if int(current_brightness) <= 0:
+            return
+        set_brightness = int(current_brightness) - 5
+    else:
+        return
+    with open(kbd_smc, 'w') as smc:
+        smc.write(str(set_brightness))
+
+
+def listener():
+    try:
+        os.unlink(brightness_sock)
+    except OSError:
+        if os.path.exists(brightness_sock):
+            raise
+
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    sock.bind(brightness_sock)
+    shutil.chown(brightness_sock, user='dmeulen', group='dmeulen')
+    sock.listen(1)
+
+    while True:
+        connection, client_address = sock.accept()
+        try:
+            while True:
+                data = connection.recv(16)
+                if data:
+                    print(data)
+                    decode_msg(data.decode())
+                else:
+                    break
+        finally:
+            connection.close()
+
+
+def send_cmd(msg):
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        sock.connect(brightness_sock)
+    except:
+        print('Could not connect to socket')
+        sys.exit(1)
+
+    sock.sendall(msg)
+
+
+if __name__ == '__main__':
+    args = docopt(__doc__)
+    if args['start']:
+        listener()
+    if args['screen']:
+        if args['increase']:
+            send_cmd(b'scr:+')
+        if args['decrease']:
+            send_cmd(b'scr:-')
+    if args['keyboard']:
+        if args['increase']:
+            send_cmd(b'kbd:+')
+        if args['decrease']:
+            send_cmd(b'kbd:-')
