@@ -17,6 +17,8 @@ from docopt import docopt
 brightness_sock = '/tmp/brightness_socket'
 screen_gmux = '/sys/class/backlight/gmux_backlight/brightness'
 kbd_smc = '/sys/class/leds/smc::kbd_backlight/brightness'
+uid = 'dmeulen'
+gid = 'dmeulen'
 
 
 def decode_msg(msg):
@@ -69,7 +71,7 @@ def listener():
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     os.umask(0o027)
     sock.bind(brightness_sock)
-    shutil.chown(brightness_sock, user='dmeulen', group='dmeulen')
+    shutil.chown(brightness_sock, user=uid, group=gid)
     sock.listen(1)
 
     while True:
