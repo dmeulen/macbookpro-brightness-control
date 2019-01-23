@@ -1,5 +1,5 @@
 # macbookpro-brightness-control
-Macbook Pro Screen and Keyboard brightness control for use with i3wm
+Macbook Pro 11.x Screen and Keyboard brightness control for use with i3wm or any other wm.
 
 Still very redimentary, but works...
 
