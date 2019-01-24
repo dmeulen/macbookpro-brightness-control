@@ -96,6 +96,7 @@ def send_cmd(msg):
         sys.exit(1)
 
     sock.sendall(msg)
+    sock.close()
 
 
 if __name__ == '__main__':
