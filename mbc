@@ -14,11 +14,11 @@ import os
 import shutil
 from docopt import docopt
 
-brightness_sock = '/tmp/brightness_socket'
-screen_gmux = '/sys/class/backlight/gmux_backlight/brightness'
-kbd_smc = '/sys/class/leds/smc::kbd_backlight/brightness'
-uid = 'dmeulen'
-gid = 'dmeulen'
+BRIGHTNESS_SOCK = '/tmp/brightness_socket'
+SCREEN_GMUX = '/sys/class/backlight/gmux_backlight/brightness'
+KBD_SMC = '/sys/class/leds/smc::kbd_backlight/brightness'
+UID = 'dmeulen'
+GID = 'dmeulen'
 
 
 def decode_msg(msg):
@@ -30,23 +30,23 @@ def decode_msg(msg):
 
 
 def screen_brightness(cmd):
-    current_brightness = open(screen_gmux).readline().rstrip()
+    current_brightness = open(SCREEN_GMUX).readline().rstrip()
     if cmd == '+':
         if int(current_brightness) >= 1000:
             return
         set_brightness = int(current_brightness) + 10
     elif cmd == '-':
-        if int(current_brightness) <= 10:
+        if int(current_brightness) <= 20:
             return
         set_brightness = int(current_brightness) - 10
     else:
         return
-    with open(screen_gmux, 'w') as gmux:
+    with open(SCREEN_GMUX, 'w') as gmux:
         gmux.write(str(set_brightness))
 
 
 def kbd_brightness(cmd):
-    current_brightness = open(kbd_smc).readline().rstrip()
+    current_brightness = open(KBD_SMC).readline().rstrip()
     if cmd == '+':
         if int(current_brightness) >= 255:
             return
@@ -57,25 +57,25 @@ def kbd_brightness(cmd):
         set_brightness = int(current_brightness) - 5
     else:
         return
-    with open(kbd_smc, 'w') as smc:
+    with open(KBD_SMC, 'w') as smc:
         smc.write(str(set_brightness))
 
 
 def listener():
     try:
-        os.unlink(brightness_sock)
+        os.unlink(BRIGHTNESS_SOCK)
     except OSError:
-        if os.path.exists(brightness_sock):
+        if os.path.exists(BRIGHTNESS_SOCK):
             raise
 
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     os.umask(0o027)
-    sock.bind(brightness_sock)
-    shutil.chown(brightness_sock, user=uid, group=gid)
+    sock.bind(BRIGHTNESS_SOCK)
+    shutil.chown(BRIGHTNESS_SOCK, user=UID, group=GID)
     sock.listen(1)
 
     while True:
-        connection, client_address = sock.accept()
+        connection, _ = sock.accept()
         try:
             while True:
                 data = connection.recv(16)
@@ -90,7 +90,7 @@ def listener():
 def send_cmd(msg):
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     try:
-        sock.connect(brightness_sock)
+        sock.connect(BRIGHTNESS_SOCK)
     except:
         print('Could not connect to socket')
         sys.exit(1)
@@ -100,16 +100,16 @@ def send_cmd(msg):
 
 
 if __name__ == '__main__':
-    args = docopt(__doc__)
-    if args['start']:
+    ARGS = docopt(__doc__)
+    if ARGS['start']:
         listener()
-    if args['screen']:
-        if args['increase']:
+    if ARGS['screen']:
+        if ARGS['increase']:
             send_cmd(b'scr:+')
-        if args['decrease']:
+        if ARGS['decrease']:
             send_cmd(b'scr:-')
-    if args['keyboard']:
-        if args['increase']:
+    if ARGS['keyboard']:
+        if ARGS['increase']:
             send_cmd(b'kbd:+')
-        if args['decrease']:
+        if ARGS['decrease']:
             send_cmd(b'kbd:-')
