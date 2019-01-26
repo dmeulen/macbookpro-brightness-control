@@ -22,6 +22,7 @@ GID = 'dmeulen'
 
 
 def decode_msg(msg):
+    """Decode recieved message"""
     msg_type, msg_cmd = msg.split(':')
     if msg_type == 'scr':
         screen_brightness(msg_cmd)
@@ -30,6 +31,7 @@ def decode_msg(msg):
 
 
 def screen_brightness(cmd):
+    """Control backlight brightness"""
     current_brightness = open(SCREEN_GMUX).readline().rstrip()
     if cmd == '+':
         if int(current_brightness) >= 1000:
@@ -46,6 +48,7 @@ def screen_brightness(cmd):
 
 
 def kbd_brightness(cmd):
+    """Control keyboard brightness"""
     current_brightness = open(KBD_SMC).readline().rstrip()
     if cmd == '+':
         if int(current_brightness) >= 255:
@@ -62,6 +65,7 @@ def kbd_brightness(cmd):
 
 
 def listener():
+    """Listens on socket for messages"""
     try:
         os.unlink(BRIGHTNESS_SOCK)
     except OSError:
@@ -88,11 +92,12 @@ def listener():
 
 
 def send_cmd(msg):
+    """Send messages through socket"""
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     try:
         sock.connect(BRIGHTNESS_SOCK)
-    except:
-        print('Could not connect to socket')
+    except OSError:
+        print('Could not connect to socket, is mbc listener started?')
         sys.exit(1)
 
     sock.sendall(msg)
